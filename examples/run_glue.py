@@ -21,7 +21,7 @@ import logging
 import os
 from dataclasses import dataclass, field
 from typing import Dict, Optional
-
+import json
 import numpy as np
 
 from transformers import (
@@ -41,7 +41,7 @@ from transformers import (
 )
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('run_glue')
 
 
 @dataclass
@@ -143,11 +143,7 @@ def main():
     )
 
     def compute_metrics(p: EvalPrediction) -> Dict:
-        if output_mode == "classification":
-            preds = np.argmax(p.predictions, axis=1)
-        elif output_mode == "regression":
-            preds = np.squeeze(p.predictions)
-        return glue_compute_metrics(data_args.task_name, preds, p.label_ids)
+        return glue_compute_metrics(data_args.task_name, output_mode, p.predictions, p.label_ids)
 
     # Initialize our Trainer
     trainer = Trainer(
@@ -183,15 +179,26 @@ def main():
             )
 
         for eval_dataset in eval_datasets:
-            result = trainer.evaluate(eval_dataset=eval_dataset)
-
+            full_result = trainer.evaluate(eval_dataset=eval_dataset)
+            
+            from pandas import DataFrame
+            res = DataFrame()
+            res['scores'] = full_result.predictions[:, 1]
+            res['labels'] = full_result.label_ids
+            
+            output_eval_file0 = os.path.join(
+                training_args.output_dir, f"eval_results_{eval_dataset.args.task_name}.csv"
+            )
+            res.to_csv(output_eval_file0)
+            
+            result = full_result.metrics
             output_eval_file = os.path.join(
                 training_args.output_dir, f"eval_results_{eval_dataset.args.task_name}.txt"
             )
             with open(output_eval_file, "w") as writer:
                 logger.info("***** Eval results {} *****".format(eval_dataset.args.task_name))
                 for key, value in result.items():
-                    logger.info("  %s = %s", key, value)
+                    logger.info("  {:<7} = {:.3f}".format(key, value))
                     writer.write("%s = %s\n" % (key, value))
 
             results.update(result)

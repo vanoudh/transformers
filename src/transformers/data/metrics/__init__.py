@@ -14,9 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
+
 try:
     from scipy.stats import pearsonr, spearmanr
-    from sklearn.metrics import matthews_corrcoef, f1_score
+    from sklearn.metrics import matthews_corrcoef, f1_score, roc_auc_score
 
     _has_sklearn = True
 except (AttributeError, ImportError):
@@ -40,6 +42,13 @@ if _has_sklearn:
             "f1": f1,
             "acc_and_f1": (acc + f1) / 2,
         }
+    
+    def classif_metrics(scores, preds, labels):
+        return {
+            "acc": simple_accuracy(preds, labels),
+            "f1": f1_score(y_true=labels, y_pred=preds),
+            "auroc": roc_auc_score(labels, scores),
+        }
 
     def pearson_and_spearman(preds, labels):
         pearson_corr = pearsonr(preds, labels)[0]
@@ -50,7 +59,13 @@ if _has_sklearn:
             "corr": (pearson_corr + spearman_corr) / 2,
         }
 
-    def glue_compute_metrics(task_name, preds, labels):
+    def glue_compute_metrics(task_name, output_mode, scores, labels):
+        
+        if output_mode == "classification":
+            preds = np.argmax(scores, axis=1)
+        elif output_mode == "regression":
+            preds = np.squeeze(scores)
+            
         assert len(preds) == len(labels)
         if task_name == "cola":
             return {"mcc": matthews_corrcoef(labels, preds)}
@@ -74,6 +89,8 @@ if _has_sklearn:
             return {"acc": simple_accuracy(preds, labels)}
         elif task_name == "hans":
             return {"acc": simple_accuracy(preds, labels)}
+        elif task_name == "mmre":
+            return classif_metrics(scores[:, 1], preds, labels)
         else:
             raise KeyError(task_name)
 

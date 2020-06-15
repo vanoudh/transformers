@@ -509,6 +509,45 @@ class WnliProcessor(DataProcessor):
         return examples
 
 
+class MmreProcessor(DataProcessor):
+    """Processor for the MimicRE data set (GLUE version)."""
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            None,
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(self._read_csv(os.path.join(data_dir, "train.csv"), quotechar='"'), "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+#        return self._create_examples(self._read_csv(os.path.join(data_dir, "dev.csv"), quotechar='"'), "dev")
+        return self._create_examples(self._read_csv(os.path.join(data_dir, "test.csv"), quotechar='"'), "test")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        ### idx,ID(123.0),Text("toto"),Label(float 1.0 0.0)
+        examples = []
+        for (i, line) in enumerate(lines):
+            if i == 0:
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = line[2]
+            label = line[3][0]
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+
 glue_tasks_num_labels = {
     "cola": 2,
     "mnli": 3,
@@ -519,6 +558,7 @@ glue_tasks_num_labels = {
     "qnli": 2,
     "rte": 2,
     "wnli": 2,
+    "mmre": 2,
 }
 
 glue_processors = {
@@ -532,6 +572,7 @@ glue_processors = {
     "qnli": QnliProcessor,
     "rte": RteProcessor,
     "wnli": WnliProcessor,
+    "mmre": MmreProcessor,
 }
 
 glue_output_modes = {
@@ -545,4 +586,5 @@ glue_output_modes = {
     "qnli": "classification",
     "rte": "classification",
     "wnli": "classification",
+    "mmre": "classification",
 }

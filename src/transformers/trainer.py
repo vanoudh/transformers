@@ -483,7 +483,10 @@ class Trainer:
         eval_dataloader = self.get_eval_dataloader(eval_dataset)
 
         output = self._prediction_loop(eval_dataloader, description="Evaluation")
-        return output.metrics
+        
+        print('modified output')
+        #return output.metrics
+        return output
 
     def predict(self, test_dataset: Dataset) -> PredictionOutput:
         """
@@ -513,7 +516,7 @@ class Trainer:
             model = self.model
         model.to(self.args.device)
 
-        logger.info("***** Running %s *****", description)
+        logger.info("***** Running %s ***** MODIFIED", description)
         logger.info("  Num examples = %d", len(dataloader.dataset))
         logger.info("  Batch size = %d", dataloader.batch_size)
         eval_losses: List[float] = []

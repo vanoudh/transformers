@@ -115,7 +115,13 @@ class DataProcessor:
         with open(input_file, "r", encoding="utf-8-sig") as f:
             return list(csv.reader(f, delimiter="\t", quotechar=quotechar))
 
+    @classmethod
+    def _read_csv(cls, input_file, quotechar=None):
+        """Reads a csv separated value file."""
+        with open(input_file, "r", encoding="utf-8-sig") as f:
+            return list(csv.reader(f, delimiter=",", quotechar=quotechar))
 
+        
 class SingleSentenceClassificationProcessor(DataProcessor):
     """ Generic processor for a single sentence classification data set."""
 
